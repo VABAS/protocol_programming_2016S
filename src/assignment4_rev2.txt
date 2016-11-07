@@ -1,0 +1,208 @@
+SIMPLE FILE TRANSFER PROTOCOL (Rev #2)
+Protocol design assignment (assignment #4)
+Jesse Siekkinen, K1661, TTV15S6
+
+
+1 Protocol design
+
+Protocol is build on top of Transport Control Protocol (TCP) because it 
+requires a bit reliability when sending and receiving data between 
+client and server. Protocol itself follows stateless design and is not 
+aware if connection has occurred before or not. Communication between 
+protocol client and server comprises of requests and responses. Client 
+sends request to server which responds to this request with response. 
+After servers response the connection is closed by both parties. 
+
+This document does not attempt to specify complete description of the 
+protocol in question but only a very basic design as instructed in 
+assignment. Example of future implementations could be: file-uploads, 
+authentication, access control etc. which should be possible just by 
+adding the required request- and response-types.
+
+
+2 Request and response syntaxes
+
+All requests and responses consists of roughly two sections: header-
+section and data-section. Header consists of fields which are separated 
+with one newline-character (\n). Two newline-characters after header-
+field mark the ending of header-section and start of data-section. 
+Number and types of required header fields depend on the type of request
+or response. Each header field consists of fields TITLE and fields VALUE
+separated with single colon-character (:). Header field names are not 
+case sensitive but data of the field may be depending on the field in 
+question. 
+
+At examples in this document the messages are formatted as they should 
+look like (newline as newline) and are added with line numbers after 
+newline for clarity. 
+
+2.1 Common header-fields
+
+Every message must start with header-field TYPE. Type-field specifies
+type of the message and is therefore important so that subject of the 
+message can handle it correctly. TYPE field must always be followed by 
+DLEN-field, which specifies length of the data-section alone. These two 
+fields are called the "Common Header Fields". Common header fields must 
+be included at all of the responses and requests and must occur before 
+any other fields are supplied for header. This means that TYPE-field is 
+always at line one at the message and DLEN-field is at second line.
+
+
+3 Requests
+
+Client issues request for the server to obtain information. This 
+information could be anything the server is implemented to send back. 
+Following chapters will introduce currently available request types.
+
+
+3.1 LIST-request
+
+Listing of files and directories in directory at server can be 
+requested using LIST-request. Server responds to LIST-request with LIST-
+response or with ERR-response if request generated error at server. 
+Syntax of LIST request is 
+
+ TYPE:LIST\nDLEN:<datalength>\n\n<dirpath>
+
+where <dirpath> is variable that indicates the directory to be listed. 
+Directory is specified in relation to the file-server's root directory.
+For example, request
+
+ 1 TYPE:LIST
+ 2 DLEN:1
+ 3 
+ 4 /
+
+requests file-listing from servers root-directory. Directory-variable 
+must start and end with forward slash-character (/). Variable 
+<datalength> is length of the data section in bytes.
+
+
+3.2 DOWNLOAD-request
+
+File could be downloaded using DOWNLOAD-request. Server responds to 
+DOWNLOAD-request with FILE-response or with ERR-response if error was 
+generated at server by the request. Syntax of DOWNLOAD-request is
+
+ TYPE:DOWNLOAD\nDLEN:<data length>\n\n<filepath>
+
+where <filepath> is variable that specifies 
+complete path into the file to be downloaded in relation to servers 
+root-directory. For example, request
+
+ 1 TYPE:DOWNLOAD
+ 2 DLEN:27
+ 3
+ 4 /dir1/dir15/hello_world.txt
+
+will request file hello_world.txt at path /dir1/dir15/ for download. 
+The <filepath>-variable must always start with forvard-slash-character 
+(/). DOWNLOAD-request cannot be used to download directories or multiple
+files. Such commands should be implemented at client side and client 
+should then issue multiple DOWNLOAD-request to server. 
+
+
+4 Responses
+
+When server has received request from the client, sends server back a 
+response in which it sends the information client requested or error if 
+the request was invalid or information requested was unavailable for 
+some reason. Following chapters will introduce the currently available 
+response types. 
+
+
+4.1 LIST-response
+
+LIST-response is listing of files and directories at path requested by 
+the client. Listing is machine readable and is converted to human 
+readable format at client side if necessary. Server must format data-
+section of the LIST-response as follows:
+
+ - First line is announcement message that can be specified freely as 
+   one line
+ - Second line of data-section is file system path of listing
+ - From third line onwards is listing of files and directories formatted 
+   X<file/directory name>/FSIZE\n
+   where X is D for directories and F for files. FSIZE is size of file 
+   in bytes. 
+
+FSIZE is ignored in directory entries. Example of list response follows:
+
+ 1 TYPE:LIST
+ 2 DLEN:154
+ 3 
+ 4 Listing of file server files.example.com
+ 5 /random/downloadable/content/
+ 6 Dsubfolder
+ 7 Dzubfolder
+ 8 Falphabets.pdf/1363149
+ 9 Fhello_world.txt/27648
+10 Fvideo.avi/227540992
+
+Listing must not be possible in directories above the server root.
+
+4.2 FILE-response
+
+FILE-header could include additional fields after the common fields. 
+These additional fields may or may not be taken into account when client
+parses the header but must be always provided by server. Additional 
+header fields are:
+
+ - FNAME - Name of the file to be downloaded (case sensitive)
+ - FSIZE - Size of the file to be downloaded in bytes
+ - FSHAS - SHA-hash of the file to be downloaded (SHA1, SHA2, SHA512 
+   etc...) (not case sensitive)
+ - FMIME - MIME-type of the file to be downloaded (not case sensitive)
+
+Downloads above the server root must not be possible for safety reasons.
+Example of FILE-response follows:
+
+ 1 TYPE:FILE
+ 2 DLEN:26
+ 3 FNAME:hello_world.txt
+ 4 FSIZE:26
+ 5 FSHASH:EB1FE6F27D1A1AD2E1B26FB8D656CC5912AEAD79
+ 6 FMIME:text/plain
+ 7 
+ 8 Hello to the whole world!
+ 9 
+
+
+4.3 ERR-response
+
+Server sends errors to the client with ERR-response. Error-messages are 
+introduced at section 5. ERR-header-section contains only TYPE- and 
+DLEN-fields. Other fields may be ignored by the client. First line of 
+the data indicates the error-group. Second line of the data-section 
+indicates the error-specifier. Additional information of the error may 
+be provided third line onwards at data-section. Clients are required to 
+handle only first two lines of the data-section and everything after 
+these lines may be ignored. Example of minimal ERR-response follows:
+
+ 1 TYPE:ERR
+ 2 DLEN:13
+ 3 
+ 4 FILE
+ 5 NOTFOUND
+
+
+5 Error messages
+
+ - REQMALFORMED\nENDNOTEXPECTED  - Request ended unexpectedly
+ - REQMALFORMED\nUNKNOWN - Request was not understood
+ - FILE\nNOTFOUND - File or directory specified in request doesn't exist
+ - FILE\nNOTDOWNLOADABLE - File specified was not downloadable.
+ - FILE\nISDIRECTORY - File requested for download happens to be a 
+   directory 
+ - FILE\nNOTDIR - Directory requested for listing is not directory
+ - FILE\nPERMISSIONS - Error with file permissions
+ - FILE\nUNKNOWN - Unknown or non-standard error at file-access
+ - ERR\nUNKNOWN - Unknown or non-standard error happened at request 
+   processing­
+
+6 Changes at revision #2
+
+ - Corrected some spelling mistakes
+ - Clarification on header field case-sensitivity
+ - Safety additions for LIST- and DOWNLOAD-responses (dir-traversal)
+ - Error msg FILE_NOTDIR added
