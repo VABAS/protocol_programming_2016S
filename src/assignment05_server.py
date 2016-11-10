@@ -10,7 +10,7 @@ import socket,sys,os,time,hashlib,mimetypes
 # Start of settings
 addr="localhost"
 port=8888
-server_root='Z:/2016S/Protocol Programming/assignment5/files'
+server_root='files'
 list_announcement="Listing of files at server files.example.com"
 # End of settings
 

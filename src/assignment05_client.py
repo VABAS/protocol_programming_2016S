@@ -19,7 +19,7 @@ question.
 
 import socket,sys,hashlib,os
 #Start of settings
-dl_root="Z:/2016S/Protocol Programming/assignment5/dls"
+dl_root="dls"
 #End of settings
 
 # Request and response types implemented as well with error-messages
