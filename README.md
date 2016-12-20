@@ -15,3 +15,6 @@ Following assignment are currently included:
 * Assignment 05
   * [Client](src/assignment05_client.py)
   * [Server](src/assignment05_server.py)
+* Assignment 06
+  * [Client](src/assignment06_client.py)
+  * [Server](src/assignment06_server.py)
